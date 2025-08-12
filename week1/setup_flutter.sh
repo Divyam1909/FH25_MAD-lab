@@ -2,27 +2,21 @@
 
 : <<'COMMENT_BLOCK'
 ==========================================================================================
-🛠️  Flutter Web Setup Script for GitHub Codespaces
+⚡ Flutter Web Optimized Auto-Reload Setup for GitHub Codespaces
 ------------------------------------------------------------------------------------------
-📦 This script:
-1. Moves Flutter SDK to a permanent directory (/workspaces/flutter)
-2. Adds Flutter to PATH via ~/.bashrc for persistence
-3. Enables web support in Flutter
-4. Detects Flutter version and fixes index.html script tag
-5. Gets dependencies
-6. Cleans and rebuilds the Flutter web app
-7. Runs the app on web-server (port 8080)
+📌 Features:
+  - Builds Flutter Web in release mode for fast loading
+  - Serves via Python HTTP server (fast + lightweight)
+  - Watches for changes in lib/ and triggers rebuild
+  - Automatically refreshes Codespaces preview tab
 
-💡 Run this script from your Flutter project root folder.
-
-📌 To run this script:
+🔹 How to use:
    chmod +x setup_flutter.sh
    ./setup_flutter.sh
-
 ==========================================================================================
 COMMENT_BLOCK
 
-# 1. Move Flutter SDK if inside project
+# 1. Move Flutter SDK if needed
 if [ -d "flutter" ] && [ ! -d "/workspaces/flutter" ]; then
   echo "📁 Moving Flutter SDK to /workspaces/flutter..."
   mv flutter /workspaces/flutter
@@ -35,55 +29,55 @@ if ! grep -q "/workspaces/flutter/bin" ~/.bashrc; then
 fi
 export PATH="$PATH:/workspaces/flutter/bin"
 
-# 3. Verify Flutter installation
+# 3. Verify Flutter
 echo "🔍 Checking Flutter..."
 flutter --version || { echo "❌ Flutter not found in PATH. Exiting."; exit 1; }
 
-# 4. Enable web support
-echo "🌐 Enabling web support..."
+# 4. Enable web
 flutter config --enable-web
 
-# 5. Detect Flutter version
-FLUTTER_VERSION=$(flutter --version --machine | grep -oP '"frameworkVersion":\s*"\K[^"]+')
-echo "📦 Flutter version detected: $FLUTTER_VERSION"
-
-# 6. Decide script tag
-SCRIPT_TAG=""
-if [[ "$FLUTTER_VERSION" > "3.10" ]]; then
-  SCRIPT_TAG='<script src="flutter_bootstrap.js" async></script>'
-else
-  SCRIPT_TAG='<script src="main.dart.js" defer></script>'
-fi
-echo "🔧 Using script tag: $SCRIPT_TAG"
-
-# 7. Fix web/index.html
+# 5. Disable service worker for dev
 INDEX_FILE="web/index.html"
 if [ -f "$INDEX_FILE" ]; then
-  echo "📝 Updating $INDEX_FILE..."
-  # Remove any old script tags for dart.js / web_entrypoint
-  sed -i '/<script src=.*dart.js.*>/d' "$INDEX_FILE"
-  sed -i '/<script src=.*flutter_bootstrap.js.*>/d' "$INDEX_FILE"
-  sed -i '/<script src=.*web_entrypoint.dart.js.*>/d' "$INDEX_FILE"
-  # Add new one before </body>
-  sed -i "s|</body>|  $SCRIPT_TAG\n</body>|" "$INDEX_FILE"
-else
-  echo "⚠️ No $INDEX_FILE found, skipping HTML update."
+  echo "⚠️ Disabling service worker..."
+  sed -i "s|var serviceWorkerVersion = .*|var serviceWorkerVersion = null;|" "$INDEX_FILE"
 fi
 
-# 8. Get dependencies
-echo "📚 Running flutter pub get..."
+# 6. Get deps
 flutter pub get
 
-# 9. Clean build
-echo "🧼 Cleaning..."
-flutter clean
+# 7. Install inotify-tools for watching (if missing)
+if ! command -v inotifywait &>/dev/null; then
+  echo "📦 Installing inotify-tools for file watching..."
+  sudo apt-get update && sudo apt-get install -y inotify-tools
+fi
 
-# 10. Build web
-echo "🏗️ Building Flutter web app..."
-flutter build web
+# 8. Build & serve function
+build_and_serve() {
+  echo "🏗️ Building Flutter web in release mode..."
+  flutter build web --release > /dev/null 2>&1
 
-# 11. Run web server
-echo "🚀 Running Flutter app on web-server (port 8080)..."
-flutter run -d web-server --web-port=8080 --web-hostname=0.0.0.0
+  if ! lsof -i:8080 >/dev/null 2>&1; then
+    echo "🚀 Starting server on port 8080..."
+    cd build/web
+    python3 -m http.server 8080 &
+    SERVER_PID=$!
+    cd ../..
+    sleep 2
+    if command -v gp preview &>/dev/null; then
+      gp preview "$(gp url 8080)"
+    else
+      echo "🌐 Open the Ports tab and click the globe on port 8080."
+    fi
+  fi
+}
 
-echo "🌐 Open the PORTS tab in Codespaces and click the globe 🌐 on port 8080."
+# 9. Initial build
+build_and_serve
+
+# 10. Watch for changes in lib/ and rebuild
+echo "👀 Watching for changes in lib/..."
+inotifywait -m -r -e close_write,modify,create,delete lib/ | while read -r dir events file; do
+  echo "♻️ Changes detected in $file — rebuilding..."
+  build_and_serve
+done
