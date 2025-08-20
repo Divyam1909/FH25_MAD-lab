@@ -56,6 +56,12 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "flame",
+      "rootUri": "file:///home/codespace/.pub-cache/hosted/pub.dev/flame-1.30.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
       "name": "flutter",
       "rootUri": "file:///workspaces/flutter/packages/flutter",
       "packageUri": "lib/",
@@ -120,6 +126,12 @@
       "rootUri": "file:///home/codespace/.pub-cache/hosted/pub.dev/meta-1.16.0",
       "packageUri": "lib/",
       "languageVersion": "2.12"
+    },
+    {
+      "name": "ordered_set",
+      "rootUri": "file:///home/codespace/.pub-cache/hosted/pub.dev/ordered_set-8.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
     },
     {
       "name": "path",

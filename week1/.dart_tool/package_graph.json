@@ -8,6 +8,7 @@
       "version": "1.0.0+1",
       "dependencies": [
         "cupertino_icons",
+        "flame",
         "flutter",
         "shared_preferences"
       ],
@@ -388,6 +389,22 @@
         "meta",
         "path"
       ]
+    },
+    {
+      "name": "flame",
+      "version": "1.30.1",
+      "dependencies": [
+        "collection",
+        "flutter",
+        "meta",
+        "ordered_set",
+        "vector_math"
+      ]
+    },
+    {
+      "name": "ordered_set",
+      "version": "8.0.0",
+      "dependencies": []
     }
   ],
   "configVersion": 1

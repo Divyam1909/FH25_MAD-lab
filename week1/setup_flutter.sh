@@ -2,13 +2,13 @@
 
 : <<'COMMENT_BLOCK'
 ==========================================================================================
-⚡ Flutter Web Optimized Auto-Reload Setup for GitHub Codespaces
+⚡ Flutter Web Manual-Rebuild Menu for GitHub Codespaces
 ------------------------------------------------------------------------------------------
 📌 Features:
-  - Builds Flutter Web in release mode for fast loading
-  - Serves via Python HTTP server (fast + lightweight)
-  - Watches for changes in lib/ and triggers rebuild
-  - Automatically refreshes Codespaces preview tab
+  - Build Flutter Web in release mode for fast load times
+  - Serve via Python HTTP server
+  - Simple menu: Press 'r' to rebuild, 'q' to quit
+  - Avoids constant rebuilds on every file change
 
 🔹 How to use:
    chmod +x setup_flutter.sh
@@ -46,15 +46,9 @@ fi
 # 6. Get deps
 flutter pub get
 
-# 7. Install inotify-tools for watching (if missing)
-if ! command -v inotifywait &>/dev/null; then
-  echo "📦 Installing inotify-tools for file watching..."
-  sudo apt-get update && sudo apt-get install -y inotify-tools
-fi
-
-# 8. Build & serve function
+# 7. Function to build & serve
 build_and_serve() {
-  echo "🏗️ Building Flutter web in release mode..."
+  echo "🏗️ Building Flutter web (release mode)..."
   flutter build web --release > /dev/null 2>&1
 
   if ! lsof -i:8080 >/dev/null 2>&1; then
@@ -69,15 +63,28 @@ build_and_serve() {
     else
       echo "🌐 Open the Ports tab and click the globe on port 8080."
     fi
+  else
+    echo "♻️ Restarting server..."
+    kill -9 $(lsof -t -i:8080)
+    cd build/web
+    python3 -m http.server 8080 &
+    SERVER_PID=$!
+    cd ../..
   fi
 }
 
-# 9. Initial build
+# 8. Initial build & serve
 build_and_serve
 
-# 10. Watch for changes in lib/ and rebuild
-echo "👀 Watching for changes in lib/..."
-inotifywait -m -r -e close_write,modify,create,delete lib/ | while read -r dir events file; do
-  echo "♻️ Changes detected in $file — rebuilding..."
-  build_and_serve
+# 9. Menu loop
+while true; do
+  echo ""
+  echo "💡 Press 'r' to rebuild, 'q' to quit"
+  read -n 1 key
+  echo ""
+  case $key in
+    r|R) build_and_serve ;;
+    q|Q) echo "👋 Quitting..."; kill -9 $(lsof -t -i:8080) 2>/dev/null; exit 0 ;;
+    *) echo "❌ Invalid option" ;;
+  esac
 done
