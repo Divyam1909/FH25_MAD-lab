@@ -1,19 +1,38 @@
-name: flutter_app
-description: A new Flutter project.
+name: cybersecurity_lab
+description: A comprehensive Flutter web application for cybersecurity education and testing
 
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.18.2 <3.0.0'
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  shared_preferences: ^2.0.15
-  flame: ^1.14.0
+  
+  # UI Components
   cupertino_icons: ^1.0.2
+  flutter_animate: ^4.2.0
+  
+  # Charts and Visualization
+  fl_chart: ^0.63.0
+  
+  # File Operations
+  file_picker: ^5.5.0
+  
+  # Crypto and Security
+  crypto: ^3.0.3
+  pointycastle: ^3.7.3
+  
+  # State Management
+  provider: ^6.0.5
+  
+  # Utilities
+  intl: ^0.18.1
+  logger: ^2.0.1
 
 dev_dependencies:
   flutter_test:
@@ -22,3 +41,8 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  
+  fonts:
+    - family: 'Courier'
+      fonts:
+        - asset: fonts/courier.ttf
