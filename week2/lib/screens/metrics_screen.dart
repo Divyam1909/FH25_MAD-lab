@@ -78,10 +78,10 @@ class MetricsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Run some encryption tests to see detailed metrics and analysis',
+              'Run simulations to generate performance and security metrics.',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[600],
+                color: Colors.grey[500],
               ),
               textAlign: TextAlign.center,
             ),
@@ -92,93 +92,86 @@ class MetricsScreen extends StatelessWidget {
   }
 
   Widget _buildMetricsContent(AppState appState, BuildContext context) {
-    final benchmarkService = Provider.of<BenchmarkService>(context);
-    final report = benchmarkService.generateReport(appState.benchmarkResults);
+    final results = appState.benchmarkResults;
+    final benchmarkService = Provider.of<BenchmarkService>(context, listen: false);
+
+    final report = _buildReport(results, benchmarkService);
 
     return Column(
       children: [
-        // Summary Cards
         Row(
           children: [
-            Expanded(child: _buildSummaryCard('Total Tests', '${report.totalTests}', Icons.quiz, const Color(0xFF00FF41))),
-            const SizedBox(width: 16),
             Expanded(child: _buildSummaryCard('Avg Security Score', '${report.averageSecurityScore.toInt()}%', Icons.security, Colors.blue)),
             const SizedBox(width: 16),
-            Expanded(child: _buildSummaryCard('Avg Attack Rate', '${report.averageAttackSuccessRate.toInt()}%', Icons.warning, Colors.orange)),
+            Expanded(child: _buildSummaryCard('Avg Throughput', '${report.averageThroughput.toStringAsFixed(2)} B/s', Icons.speed, Colors.orange)),
             const SizedBox(width: 16),
-            Expanded(child: _buildSummaryCard('Best Algorithm', report.bestSecurityAlgorithm, Icons.star, Colors.yellow)),
+            Expanded(child: _buildSummaryCard('Avg Latency', '${report.averageLatency.toStringAsFixed(2)} ms', Icons.timer, Colors.purple)),
           ],
         ),
-        const SizedBox(height: 32),
-
-        // Charts Section
+        const SizedBox(height: 24),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              flex: 2,
-              child: _buildPerformanceChart(appState.benchmarkResults),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              flex: 1,
-              child: _buildSecurityScoreChart(appState.benchmarkResults),
-            ),
+            Expanded(child: _buildPerformanceChart(results)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildSecurityScoreChart(results)),
           ],
         ),
-        const SizedBox(height: 32),
-
-        // Detailed Analysis
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _buildAlgorithmAnalysis(benchmarkService),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: _buildRecommendations(report),
-            ),
-          ],
-        ),
-        const SizedBox(height: 32),
-
-        // Risk Assessment
-        _buildRiskAssessment(appState.benchmarkResults, benchmarkService),
-        const SizedBox(height: 32),
-
-        // Detailed Results Table
-        _buildResultsTable(appState.benchmarkResults),
+        const SizedBox(height: 24),
+        _buildRiskAssessment(results, benchmarkService),
+        const SizedBox(height: 24),
+        _buildResultsTable(results),
       ],
+    );
+  }
+
+  _Report _buildReport(List<AdvancedBenchmarkResult> results, BenchmarkService benchmarkService) {
+    if (results.isEmpty) return _Report.empty();
+
+    final avgSec = results.map((r) => r.securityMetrics.overallSecurityScore).reduce((a, b) => a + b) / results.length;
+    final avgThroughput = results.map((r) => r.performanceMetrics.throughput).reduce((a, b) => a + b) / results.length;
+    final avgLatency = results.map((r) => r.performanceMetrics.latency).reduce((a, b) => a + b) / results.length;
+
+    return _Report(
+      averageSecurityScore: avgSec,
+      averageThroughput: avgThroughput,
+      averageLatency: avgLatency,
     );
   }
 
   Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
     return CyberCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[400],
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color),
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -186,13 +179,16 @@ class MetricsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPerformanceChart(List<BenchmarkResult> results) {
+  Widget _buildPerformanceChart(List<AdvancedBenchmarkResult> results) {
+    final encSeries = results.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.encryptionResult.encryptionTime));
+    final decSeries = results.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.performanceMetrics.latency));
+
     return CyberCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Performance Comparison',
+            'Performance Over Time',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -201,62 +197,39 @@ class MetricsScreen extends StatelessWidget {
           const SizedBox(height: 20),
           SizedBox(
             height: 300,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: results.map((r) => r.encryptionTime).reduce((a, b) => a > b ? a : b) * 1.2,
-                barGroups: results.asMap().entries.map((entry) {
-                  return BarChartGroupData(
-                    x: entry.key,
-                    barRods: [
-                      BarChartRodData(
-                        toY: entry.value.encryptionTime,
-                        color: const Color(0xFF00FF41),
-                        width: 16,
-                      ),
-                      BarChartRodData(
-                        toY: entry.value.decryptionTime,
-                        color: Colors.orange,
-                        width: 16,
-                      ),
-                    ],
-                  );
-                }).toList(),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          '${value.toInt()}ms',
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                    ),
+            child: LineChart(
+              LineChartData(
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: encSeries.toList(),
+                    color: const Color(0xFF00FF41),
+                    isCurved: true,
+                    barWidth: 2,
+                    dotData: const FlDotData(show: false),
                   ),
+                  LineChartBarData(
+                    spots: decSeries.toList(),
+                    color: Colors.orange,
+                    isCurved: true,
+                    barWidth: 2,
+                    dotData: const FlDotData(show: false),
+                  ),
+                ],
+                titlesData: FlTitlesData(
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        if (value.toInt() < results.length) {
-                          return Text(
-                            results[value.toInt()].encryptionAlgorithm.substring(0, 3),
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 10,
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
+                      reservedSize: 22,
+                      getTitlesWidget: (value, meta) => Text('#${value.toInt()}', style: const TextStyle(fontSize: 10)),
                     ),
                   ),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 28,
+                      getTitlesWidget: (value, meta) => Text(value.toInt().toString(), style: const TextStyle(fontSize: 10)),
+                    ),
+                  ),
                 ),
                 gridData: FlGridData(
                   show: true,
@@ -285,7 +258,7 @@ class MetricsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSecurityScoreChart(List<BenchmarkResult> results) {
+  Widget _buildSecurityScoreChart(List<AdvancedBenchmarkResult> results) {
     return CyberCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,9 +284,10 @@ class MetricsScreen extends StatelessWidget {
                     Colors.red,
                     Colors.yellow,
                   ];
+                  final score = entry.value.securityMetrics.overallSecurityScore;
                   return PieChartSectionData(
-                    value: entry.value.securityScore,
-                    title: '${entry.value.securityScore.toInt()}%',
+                    value: score,
+                    title: '${score.toInt()}%',
                     color: colors[entry.key % colors.length],
                     radius: 50,
                     titleStyle: const TextStyle(
@@ -338,28 +312,14 @@ class MetricsScreen extends StatelessWidget {
               Colors.red,
               Colors.yellow,
             ];
+            final score = entry.value.securityMetrics.overallSecurityScore;
             return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  Container(
-                    width: 12,
-                    height: 12,
-                    decoration: BoxDecoration(
-                      color: colors[entry.key % colors.length],
-                      shape: BoxShape.circle,
-                    ),
-                  ),
+                  Container(width: 12, height: 12, color: colors[entry.key % colors.length]),
                   const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      entry.value.encryptionAlgorithm,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[400],
-                      ),
-                    ),
-                  ),
+                  Text('Result #${entry.key + 1}: ${score.toInt()}%'),
                 ],
               ),
             );
@@ -377,208 +337,19 @@ class MetricsScreen extends StatelessWidget {
           height: 12,
           decoration: BoxDecoration(
             color: color,
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[400],
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12)),
       ],
     );
   }
 
-  Widget _buildAlgorithmAnalysis(BenchmarkService benchmarkService) {
-    return CyberCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Algorithm Analysis',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildAnalysisItem('Fastest Encryption', 'AES-256', const Color(0xFF00FF41)),
-          _buildAnalysisItem('Most Secure', 'RSA-4096', Colors.blue),
-          _buildAnalysisItem('Best Balance', 'ChaCha20', Colors.orange),
-          _buildAnalysisItem('Memory Efficient', 'Salsa20', Colors.purple),
-          const SizedBox(height: 16),
-          Text(
-            'Performance Insights:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[300],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '• Symmetric algorithms show 10x faster performance\n'
-            '• Key size directly impacts security score\n'
-            '• Modern algorithms balance speed and security',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[400],
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnalysisItem(String title, String algorithm, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            color: color,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[400],
-                  ),
-                ),
-                Text(
-                  algorithm,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendations(dynamic report) {
-    return CyberCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Security Recommendations',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildRecommendationItem(
-            Icons.security,
-            'High Priority',
-            'Implement key rotation every 90 days',
-            Colors.red,
-          ),
-          _buildRecommendationItem(
-            Icons.speed,
-            'Performance',
-            'Consider hardware acceleration for AES',
-            Colors.orange,
-          ),
-          _buildRecommendationItem(
-            Icons.shield,
-            'Best Practice',
-            'Use authenticated encryption modes',
-            Colors.green,
-          ),
-          _buildRecommendationItem(
-            Icons.update,
-            'Maintenance',
-            'Update cryptographic libraries regularly',
-            Colors.blue,
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info, color: Colors.blue, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Overall security posture: Strong with room for improvement',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[300],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationItem(IconData icon, String category, String recommendation, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 16),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  category,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  recommendation,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[400],
-                    height: 1.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRiskAssessment(List<BenchmarkResult> results, BenchmarkService benchmarkService) {
-    final highRiskCount = results.where((r) => r.securityScore < 70).length;
-    final mediumRiskCount = results.where((r) => r.securityScore >= 70 && r.securityScore < 85).length;
-    final lowRiskCount = results.where((r) => r.securityScore >= 85).length;
+  Widget _buildRiskAssessment(List<AdvancedBenchmarkResult> results, BenchmarkService benchmarkService) {
+    final highRiskCount = results.where((r) => r.securityMetrics.overallSecurityScore < 70).length;
+    final mediumRiskCount = results.where((r) => r.securityMetrics.overallSecurityScore >= 70 && r.securityMetrics.overallSecurityScore < 85).length;
+    final lowRiskCount = results.where((r) => r.securityMetrics.overallSecurityScore >= 85).length;
 
     return CyberCard(
       child: Column(
@@ -594,165 +365,74 @@ class MetricsScreen extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: _buildRiskItem('High Risk', highRiskCount, Colors.red),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildRiskItem('Medium Risk', mediumRiskCount, Colors.orange),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildRiskItem('Low Risk', lowRiskCount, Colors.green),
-              ),
+              _buildRiskBadge('HIGH RISK', highRiskCount, Colors.red),
+              const SizedBox(width: 12),
+              _buildRiskBadge('MEDIUM RISK', mediumRiskCount, Colors.orange),
+              const SizedBox(width: 12),
+              _buildRiskBadge('LOW RISK', lowRiskCount, const Color(0xFF00FF41)),
             ],
           ),
-          const SizedBox(height: 16),
-          LinearProgressIndicator(
-            value: lowRiskCount / results.length,
-            backgroundColor: Colors.grey.withOpacity(0.3),
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF00FF41)),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Security Coverage: ${(lowRiskCount / results.length * 100).toInt()}%',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[400],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildRiskItem(String label, int count, Color color) {
+  Widget _buildRiskBadge(String label, int count, Color color) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.5)),
       ),
-      child: Column(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[400],
-            ),
-          ),
+          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+          const SizedBox(width: 8),
+          Text('$label: $count', style: TextStyle(color: color, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildResultsTable(List<BenchmarkResult> results) {
+  Widget _buildResultsTable(List<AdvancedBenchmarkResult> results) {
     return CyberCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Detailed Test Results',
+            'Detailed Results',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: MaterialStateProperty.all(Colors.grey.withOpacity(0.1)),
               columns: const [
-                DataColumn(
-                  label: Text(
-                    'Algorithm',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Encryption (ms)',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Decryption (ms)',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Security Score',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    'Status',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
+                DataColumn(label: Text('Algorithm')),
+                DataColumn(label: Text('Security Level')),
+                DataColumn(label: Text('Attack Type')),
+                DataColumn(label: Text('Enc Time (ms)')),
+                DataColumn(label: Text('Latency (ms)')),
+                DataColumn(label: Text('Throughput (B/s)')),
+                DataColumn(label: Text('Security Score')),
+                DataColumn(label: Text('Timestamp')),
               ],
-              rows: results.map((result) {
-                Color statusColor = result.securityScore >= 85
-                    ? Colors.green
-                    : result.securityScore >= 70
-                        ? Colors.orange
-                        : Colors.red;
-
-                String status = result.securityScore >= 85
-                    ? 'Excellent'
-                    : result.securityScore >= 70
-                        ? 'Good'
-                        : 'Needs Improvement';
-
-                return DataRow(
-                  cells: [
-                    DataCell(Text(result.encryptionAlgorithm)),
-                    DataCell(Text('${result.encryptionTime.toStringAsFixed(2)}')),
-                    DataCell(Text('${result.decryptionTime.toStringAsFixed(2)}')),
-                    DataCell(
-                      Text(
-                        '${result.securityScore.toInt()}%',
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    DataCell(
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: statusColor.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          status,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
+              rows: results.map((r) {
+                return DataRow(cells: [
+                  DataCell(Text(r.cryptoParameters.algorithm.name)),
+                  DataCell(Text(r.cryptoParameters.securityLevel.name)),
+                  DataCell(Text(r.attackParameters.attackType.name)),
+                  DataCell(Text(r.encryptionResult.encryptionTime.toStringAsFixed(2))),
+                  DataCell(Text(r.performanceMetrics.latency.toStringAsFixed(2))),
+                  DataCell(Text(r.performanceMetrics.throughput.toStringAsFixed(2))),
+                  DataCell(Text(r.securityMetrics.overallSecurityScore.toStringAsFixed(2))),
+                  DataCell(Text(r.timestamp.toIso8601String())),
+                ]);
               }).toList(),
             ),
           ),
@@ -760,4 +440,14 @@ class MetricsScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _Report {
+  final double averageSecurityScore;
+  final double averageThroughput;
+  final double averageLatency;
+
+  _Report({required this.averageSecurityScore, required this.averageThroughput, required this.averageLatency});
+
+  factory _Report.empty() => _Report(averageSecurityScore: 0, averageThroughput: 0, averageLatency: 0);
 }

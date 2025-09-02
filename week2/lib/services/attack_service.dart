@@ -14,6 +14,8 @@ class AttackService {
     await Future.delayed(Duration(milliseconds: _random.nextInt(1000) + 500));
 
     switch (attackType) {
+      case 'No Attack':
+        return AttackResult(success: false, confidence: 0.0, details: ['No attack selected'], modifiedData: null);
       case 'MITM':
         return _executeMITM(encryptedData);
       case 'Replay':

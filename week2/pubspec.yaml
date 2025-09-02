@@ -33,6 +33,18 @@ dependencies:
   # Utilities
   intl: ^0.18.1
   logger: ^2.0.1
+  
+  # HTTP and Networking (for future API integration)
+  http: ^1.1.0
+  
+  # Local Storage (for settings persistence)
+  shared_preferences: ^2.2.2
+  
+  # Device Information
+  device_info_plus: ^9.1.0
+  
+  # URL Launcher (for external links)
+  url_launcher: ^6.1.14
 
 dev_dependencies:
   flutter_test:

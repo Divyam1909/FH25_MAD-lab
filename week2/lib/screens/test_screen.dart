@@ -84,6 +84,10 @@ class _TestScreenState extends State<TestScreen> {
   Widget _buildTestConfiguration() {
     return Consumer<AppState>(
       builder: (context, appState, child) {
+        final disableCustomEnc = appState.uploadedEncryptionCode == null;
+        final disableCustomAtk = appState.uploadedAttackCode == null;
+        final disabledEnc = disableCustomEnc ? {'Custom'} : const <String>{};
+        final disabledAtk = disableCustomAtk ? {'Custom'} : const <String>{};
         return Column(
           children: [
             CyberCard(
@@ -102,20 +106,22 @@ class _TestScreenState extends State<TestScreen> {
                   // Encryption Algorithm Selection
                   _buildDropdown(
                     'Encryption Algorithm',
-                    appState.selectedEncryption,
-                    appState.encryptionOptions,
+                    appState.selectedEncryptionLabel,
+                    appState.encryptionOptionLabels,
                     (value) => appState.setSelectedEncryption(value!),
                     Icons.lock,
+                    disabledOptions: disabledEnc,
                   ),
                   const SizedBox(height: 20),
                   
                   // Attack Type Selection
                   _buildDropdown(
                     'Attack Type',
-                    appState.selectedAttack,
-                    appState.attackOptions,
+                    appState.selectedAttackLabel,
+                    appState.attackOptionLabels,
                     (value) => appState.setSelectedAttack(value!),
                     Icons.warning,
+                    disabledOptions: disabledAtk,
                   ),
                   const SizedBox(height: 20),
                   
@@ -160,85 +166,13 @@ class _TestScreenState extends State<TestScreen> {
                                 valueColor: AlwaysStoppedAnimation(Colors.black),
                               ),
                             )
-                          : const Icon(Icons.play_arrow),
-                      label: Text(
-                        _isRunningSimulation ? 'Running Simulation...' : 'Run Simulation',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
+                          : const Icon(Icons.play_arrow_rounded),
+                      label: Text(_isRunningSimulation ? 'Running...' : 'Run Simulation'),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            
-            // Results Display
-            if (_encryptedMessage.isNotEmpty || _decryptedMessage.isNotEmpty)
-              CyberCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Results',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    if (_encryptedMessage.isNotEmpty) ...[
-                      _buildResultItem('Encrypted:', _encryptedMessage, Colors.orange),
-                      const SizedBox(height: 12),
-                    ],
-                    
-                    if (_decryptedMessage.isNotEmpty) ...[
-                      _buildResultItem('Decrypted:', _decryptedMessage, const Color(0xFF00FF41)),
-                      const SizedBox(height: 12),
-                    ],
-                    
-                    // Verification
-                    if (_decryptedMessage.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: (_decryptedMessage == _messageController.text
-                              ? const Color(0xFF00FF41)
-                              : Colors.red).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _decryptedMessage == _messageController.text
-                                  ? Icons.check_circle
-                                  : Icons.error,
-                              color: _decryptedMessage == _messageController.text
-                                  ? const Color(0xFF00FF41)
-                                  : Colors.red,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              _decryptedMessage == _messageController.text
-                                  ? 'Encryption/Decryption Successful'
-                                  : 'Encryption/Decryption Failed',
-                              style: TextStyle(
-                                color: _decryptedMessage == _messageController.text
-                                    ? const Color(0xFF00FF41)
-                                    : Colors.red,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
           ],
         );
       },
@@ -249,90 +183,8 @@ class _TestScreenState extends State<TestScreen> {
     return Column(
       children: [
         CyberCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Multi-Agent Simulation',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                height: 300,
-                child: SimulationVisualizer(
-                  isRunning: _isRunningSimulation,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        
-        // Simulation Logs
-        CyberCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    'Simulation Logs',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: _clearLogs,
-                    icon: const Icon(
-                      Icons.clear,
-                      color: Colors.grey,
-                      size: 20,
-                    ),
-                    tooltip: 'Clear logs',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0A0A0A),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[800]!),
-                ),
-                child: _simulationLogs.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'No simulation logs yet',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: _simulationLogs.length,
-                        itemBuilder: (context, index) {
-                          final log = _simulationLogs[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Text(
-                              log,
-                              style: TextStyle(
-                                color: _getLogColor(log),
-                                fontSize: 12,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
+          child: SimulationVisualizer(
+            isRunning: _isRunningSimulation,
           ),
         ),
       ],
@@ -344,8 +196,9 @@ class _TestScreenState extends State<TestScreen> {
     String value,
     List<String> options,
     void Function(String?) onChanged,
-    IconData icon,
-  ) {
+    IconData icon, {
+    Set<String> disabledOptions = const <String>{},
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -378,9 +231,19 @@ class _TestScreenState extends State<TestScreen> {
           ),
           dropdownColor: const Color(0xFF1A1A1A),
           items: options.map((String option) {
+            final enabled = !disabledOptions.contains(option);
             return DropdownMenuItem<String>(
               value: option,
-              child: Text(option),
+              enabled: enabled,
+              child: Row(
+                children: [
+                  Text(option),
+                  if (!enabled) ...[
+                    const SizedBox(width: 6),
+                    const Icon(Icons.lock, size: 14, color: Colors.grey),
+                  ]
+                ],
+              ),
             );
           }).toList(),
         ),
@@ -438,6 +301,16 @@ class _TestScreenState extends State<TestScreen> {
   Future<void> _runSimulation() async {
     if (_messageController.text.isEmpty) return;
 
+    final appState = Provider.of<AppState>(context, listen: false);
+    if (appState.selectedEncryptionLabel == 'Custom' && appState.uploadedEncryptionCode == null) {
+      _addLog('ERROR: Custom encryption selected but no code uploaded.');
+      return;
+    }
+    if (appState.selectedAttackLabel == 'Custom' && appState.uploadedAttackCode == null) {
+      _addLog('ERROR: Custom attack selected but no code uploaded.');
+      return;
+    }
+
     setState(() {
       _isRunningSimulation = true;
       _simulationLogs.clear();
@@ -445,7 +318,6 @@ class _TestScreenState extends State<TestScreen> {
       _decryptedMessage = '';
     });
 
-    final appState = Provider.of<AppState>(context, listen: false);
     final encryptionService = Provider.of<EncryptionService>(context, listen: false);
     final attackService = Provider.of<AttackService>(context, listen: false);
     final benchmarkService = Provider.of<BenchmarkService>(context, listen: false);
@@ -455,13 +327,13 @@ class _TestScreenState extends State<TestScreen> {
       final stopwatch = Stopwatch()..start();
       
       _addLog('INFO: Starting simulation...');
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(milliseconds: 300));
       
       // Encryption phase
-      _addLog('INFO: Encrypting message with ${appState.selectedEncryption}...');
+      _addLog('INFO: Encrypting message with ${appState.selectedEncryptionLabel}...');
       final encryptionResult = await encryptionService.encrypt(
         _messageController.text,
-        appState.selectedEncryption,
+        appState.selectedEncryptionLabel,
         appState.uploadedEncryptionCode,
       );
       
@@ -477,9 +349,9 @@ class _TestScreenState extends State<TestScreen> {
       await _simulateMultiAgentTransmission(encryptionResult);
       
       // Attack simulation
-      _addLog('INFO: Launching ${appState.selectedAttack} attack...');
+      _addLog('INFO: Launching ${appState.selectedAttackLabel} attack...');
       final attackResult = await attackService.executeAttack(
-        appState.selectedAttack,
+        appState.selectedAttackLabel,
         encryptionResult,
         appState.uploadedAttackCode,
       );
@@ -495,7 +367,7 @@ class _TestScreenState extends State<TestScreen> {
       _addLog('INFO: Decrypting message...');
       final decryptedResult = await encryptionService.decrypt(
         encryptionResult,
-        appState.selectedEncryption,
+        appState.selectedEncryptionLabel,
         appState.uploadedEncryptionCode,
       );
       
@@ -508,12 +380,12 @@ class _TestScreenState extends State<TestScreen> {
       
       // Generate benchmark results
       final benchmarkResult = BenchmarkResult(
-        encryptionAlgorithm: appState.selectedEncryption,
-        attackType: appState.selectedAttack,
+        encryptionAlgorithm: appState.selectedEncryptionLabel,
+        attackType: appState.selectedAttackLabel,
         encryptionTime: encryptionTime,
         decryptionTime: decryptionTime,
-        transmissionSpeed: 1000.0, // Simulated
-        dataLossRate: 0.0, // Simulated
+        transmissionSpeed: 1000.0,
+        dataLossRate: 0.0,
         attackSuccessRate: attackResult.success ? 100.0 : 0.0,
         securityScore: benchmarkService.calculateSecurityScore(
           encryptionTime,
@@ -536,25 +408,68 @@ class _TestScreenState extends State<TestScreen> {
   }
 
   Future<void> _simulateMultiAgentTransmission(String encryptedData) async {
-    final agents = ['Agent A', 'Agent B', 'Agent C', 'Destination'];
-    
-    for (int i = 0; i < agents.length - 1; i++) {
-      await Future.delayed(const Duration(milliseconds: 300));
-      _addLog('INFO: ${agents[i]} -> ${agents[i + 1]}: Transmitting data...');
-      
-      // Simulate random delays and potential issues
-      if (DateTime.now().millisecondsSinceEpoch % 7 == 0) {
-        _addLog('WARNING: Minor packet delay detected');
-        await Future.delayed(const Duration(milliseconds: 200));
-      }
-      
-      if (DateTime.now().millisecondsSinceEpoch % 13 == 0) {
-        _addLog('WARNING: Network congestion - retransmitting...');
-        await Future.delayed(const Duration(milliseconds: 150));
-      }
+    final path = [
+      {'from': 'Client', 'to': 'Gateway'},
+      {'from': 'Gateway', 'to': 'Edge Node'},
+      {'from': 'Edge Node', 'to': 'Core Router'},
+      {'from': 'Core Router', 'to': 'Destination'},
+    ];
+
+    // 1) Session setup (TLS-like handshake logs)
+    _addLog('INFO: Initiating session setup (Client -> Gateway)');
+    await Future.delayed(const Duration(milliseconds: 250));
+    _addLog('INFO: Client: ClientHello (cipher_suites=[TLS_AES_256_GCM_SHA384,...])');
+    await Future.delayed(const Duration(milliseconds: 200));
+    _addLog('INFO: Gateway: ServerHello + Certificate + KeyShare');
+    await Future.delayed(const Duration(milliseconds: 200));
+    _addLog('INFO: Client: Verify Certificate, Key Agreement, Finished');
+    await Future.delayed(const Duration(milliseconds: 200));
+    _addLog('SUCCESS: Secure session established');
+
+    // 2) Fragmentation + checksums + retransmits
+    final mtu = 512;
+    final chunks = <String>[];
+    for (int i = 0; i < encryptedData.length; i += mtu) {
+      final end = (i + mtu < encryptedData.length) ? i + mtu : encryptedData.length;
+      chunks.add(encryptedData.substring(i, end));
     }
-    
-    _addLog('SUCCESS: Data successfully transmitted through all agents');
+    _addLog('INFO: Fragmented payload into ${chunks.length} chunks (MTU=$mtu)');
+
+    int seq = 0;
+    for (final hop in path) {
+      _addLog('INFO: ${hop['from']} -> ${hop['to']}: Link up, measuring latency and jitter');
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      for (final chunk in chunks) {
+        seq++;
+        final checksum = chunk.codeUnits.fold<int>(0, (a, b) => (a + b) & 0xFFFF);
+        _addLog('TX ${hop['from']} -> ${hop['to']} [SEQ=$seq, LEN=${chunk.length}, CRC=$checksum]');
+        await Future.delayed(const Duration(milliseconds: 80));
+
+        // Random network behaviors
+        final now = DateTime.now().millisecondsSinceEpoch;
+        if (now % 11 == 0) {
+          _addLog('WARNING: ${hop['to']} ACK timeout for SEQ=$seq, scheduling retransmission');
+          await Future.delayed(const Duration(milliseconds: 120));
+          _addLog('TX RETRY ${hop['from']} -> ${hop['to']} [SEQ=$seq]');
+        }
+        if (now % 17 == 0) {
+          _addLog('WARNING: Packet loss detected for SEQ=$seq, invoking fast retransmit');
+          await Future.delayed(const Duration(milliseconds: 100));
+          _addLog('TX FAST-RETX ${hop['from']} -> ${hop['to']} [SEQ=$seq]');
+        }
+        _addLog('RX ${hop['to']}: ACK SEQ=$seq');
+      }
+
+      _addLog('INFO: ${hop['to']}: Reassembly and integrity verification');
+      await Future.delayed(const Duration(milliseconds: 200));
+      _addLog('SUCCESS: ${hop['to']}: Payload verified, forwarding to next hop');
+    }
+
+    // 3) Destination side processing
+    _addLog('INFO: Destination: Queuing payload for decryption pipeline');
+    await Future.delayed(const Duration(milliseconds: 200));
+    _addLog('SUCCESS: End-to-end delivery completed');
   }
 
   void _addLog(String message) {

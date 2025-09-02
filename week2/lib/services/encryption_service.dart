@@ -55,123 +55,143 @@ class EncryptionService {
     }
   }
 
-  /// AES Encryption Implementation
+  /// AES (formatted like AEAD JSON) - uses CBC for demo, but outputs GCM-like metadata
   String _encryptAES(String message) {
     try {
       final key = _generateRandomBytes(32); // 256-bit key
-      final iv = _generateRandomBytes(16); // 128-bit IV
-      
-      final paddedCipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
+      final iv = _generateRandomBytes(12); // 96-bit IV typical for GCM
 
+      // Use CBC as a placeholder cipher for this demo
+      final paddedCipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
       final keyParam = KeyParameter(key);
+      // For CBC, IV must be 16 bytes; derive a 16B IV from our 12B GCM-like IV
+      final iv16 = _expandIv(iv);
       final params = PaddedBlockCipherParameters<ParametersWithIV<KeyParameter>, Null>(
-        ParametersWithIV<KeyParameter>(keyParam, iv),
+        ParametersWithIV<KeyParameter>(keyParam, iv16),
         null,
       );
-
       paddedCipher.init(true, params);
 
-      final messageBytes = utf8.encode(message);
-      final encryptedBytes = paddedCipher.process(Uint8List.fromList(messageBytes));
-      
-      // Combine IV + encrypted data for storage
-      final combined = Uint8List(iv.length + encryptedBytes.length);
-      combined.setRange(0, iv.length, iv);
-      combined.setRange(iv.length, combined.length, encryptedBytes);
-      
-      return base64.encode(combined);
+      final ts = DateTime.now().toUtc().toIso8601String();
+      final aad = utf8.encode('ts=$ts'); // pseudo-AAD field for demo
+      final msgBytes = utf8.encode(message);
+      final combined = Uint8List(aad.length + msgBytes.length)
+        ..setRange(0, aad.length, aad)
+        ..setRange(aad.length, aad.length + msgBytes.length, msgBytes);
+
+      final ctBytes = paddedCipher.process(combined);
+
+      // Fake GCM tag: HMAC-SHA256 over iv+ct+aaddigest (demo only)
+      final mac = Hmac(sha256, key);
+      final tag = mac.convert(iv + ctBytes).bytes.sublist(0, 16);
+
+      final jsonObj = {
+        'alg': 'AES-256-CBC-DEMO',
+        'iv': base64.encode(iv),
+        'ct': base64.encode(ctBytes),
+        'tag': base64.encode(tag),
+        'ts': ts,
+      };
+      return json.encode(jsonObj);
     } catch (e) {
       return 'AES_ENCRYPT_ERROR: $e';
     }
   }
 
-  String _decryptAES(String encryptedMessage) {
+  String _decryptAES(String envelope) {
     try {
-      final combined = base64.decode(encryptedMessage);
-      
-      final iv = combined.sublist(0, 16);
-      final encryptedBytes = combined.sublist(16);
-      
-      // For demo, use a fixed key (in real scenarios, key management is crucial)
-      final key = _generateFixedKey();
-      
-      final paddedCipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
+      final obj = json.decode(envelope) as Map<String, dynamic>;
+      final iv = base64.decode(obj['iv'] as String);
+      final ct = base64.decode(obj['ct'] as String);
+      final tag = base64.decode(obj['tag'] as String);
+      final ts = obj['ts'] as String?;
 
+      // In a real AEAD, verify tag; here recompute demo HMAC and compare
+      final key = _generateFixedKey();
+      final mac = Hmac(sha256, key);
+      final expectedTag = mac.convert(iv + ct).bytes.sublist(0, 16);
+      if (!_constantTimeEquals(expectedTag, tag)) {
+        return 'AES_DECRYPT_ERROR: AUTH_TAG_INVALID';
+      }
+
+      // CBC decrypt
+      final paddedCipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
       final keyParam = KeyParameter(key);
+      final iv16 = _expandIv(iv);
       final params = PaddedBlockCipherParameters<ParametersWithIV<KeyParameter>, Null>(
-        ParametersWithIV<KeyParameter>(keyParam, iv),
+        ParametersWithIV<KeyParameter>(keyParam, iv16),
         null,
       );
-
       paddedCipher.init(false, params);
 
-      final decryptedBytes = paddedCipher.process(encryptedBytes);
-      
-      return utf8.decode(decryptedBytes);
+      final combined = paddedCipher.process(ct);
+      // Split pseudo-AAD (ts=...) from message body
+      final prefix = utf8.encode('ts=${ts ?? ''}');
+      if (combined.length < prefix.length) return 'AES_DECRYPT_ERROR: CORRUPT';
+      final body = combined.sublist(prefix.length);
+      return utf8.decode(body);
     } catch (e) {
       return 'AES_DECRYPT_ERROR: $e';
     }
   }
 
-  /// Hybrid AES + ECC Encryption
+  /// Hybrid AES + ECC Encryption (kept as demo)
   String _encryptHybridAESECC(String message) {
     try {
       // Simulate ECC key exchange for AES key derivation
       final eccPrivateKey = _generateRandomBytes(32);
-      final aesKey = sha256.convert(eccPrivateKey).bytes.sublist(0, 32);
-      
-      final iv = _generateRandomBytes(16);
-      
-      final paddedCipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
+      final eccPublicKey = _generateRandomBytes(32);
+      final sharedSecret = _deriveSharedSecret(eccPrivateKey, eccPublicKey);
 
-      final keyParam = KeyParameter(Uint8List.fromList(aesKey));
+      final key = _kdf(sharedSecret, 32);
+      final iv = _generateRandomBytes(12);
+
+      final cipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
+      final keyParam = KeyParameter(key);
+      final iv16 = _expandIv(iv);
       final params = PaddedBlockCipherParameters<ParametersWithIV<KeyParameter>, Null>(
-        ParametersWithIV<KeyParameter>(keyParam, iv),
+        ParametersWithIV<KeyParameter>(keyParam, iv16),
         null,
       );
+      cipher.init(true, params);
+      final ts = DateTime.now().toUtc().toIso8601String();
+      final aad = utf8.encode('ts=$ts');
+      final msgBytes = utf8.encode(message);
+      final combined = Uint8List(aad.length + msgBytes.length)
+        ..setRange(0, aad.length, aad)
+        ..setRange(aad.length, aad.length + msgBytes.length, msgBytes);
+      final ctBytes = cipher.process(combined);
 
-      paddedCipher.init(true, params);
-
-      final messageBytes = utf8.encode(message);
-      final encryptedBytes = paddedCipher.process(Uint8List.fromList(messageBytes));
-      
-      // Combine ECC public key simulation + IV + encrypted data
-      final combined = Uint8List(64 + iv.length + encryptedBytes.length);
-      combined.setRange(0, 32, eccPrivateKey); // Simulated public key part 1
-      combined.setRange(32, 64, _generateRandomBytes(32)); // Simulated public key part 2
-      combined.setRange(64, 64 + iv.length, iv);
-      combined.setRange(64 + iv.length, combined.length, encryptedBytes);
-      
-      return 'HYBRID:${base64.encode(combined)}';
+      final mac = Hmac(sha256, key);
+      final tag = mac.convert(iv + ctBytes).bytes.sublist(0, 16);
+      return json.encode({'alg': 'HYBRID-CBC-DEMO', 'iv': base64.encode(iv), 'ct': base64.encode(ctBytes), 'tag': base64.encode(tag), 'ts': ts});
     } catch (e) {
       return 'HYBRID_ENCRYPT_ERROR: $e';
     }
   }
 
-  String _decryptHybridAESECC(String encryptedMessage) {
+  String _decryptHybridAESECC(String envelope) {
     try {
-      final data = encryptedMessage.replaceFirst('HYBRID:', '');
-      final combined = base64.decode(data);
-      
-      final eccKey = combined.sublist(0, 32);
-      final iv = combined.sublist(64, 80);
-      final encryptedBytes = combined.sublist(80);
-      
-      final aesKey = sha256.convert(eccKey).bytes.sublist(0, 32);
-      
-      final paddedCipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
+      final obj = json.decode(envelope) as Map<String, dynamic>;
+      final iv = base64.decode(obj['iv'] as String);
+      final ct = base64.decode(obj['ct'] as String);
 
-      final keyParam = KeyParameter(Uint8List.fromList(aesKey));
+      final key = _generateFixedKey();
+      final cipher = PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()));
+      final keyParam = KeyParameter(key);
+      final iv16 = _expandIv(iv);
       final params = PaddedBlockCipherParameters<ParametersWithIV<KeyParameter>, Null>(
-        ParametersWithIV<KeyParameter>(keyParam, iv),
+        ParametersWithIV<KeyParameter>(keyParam, iv16),
         null,
       );
-
-      paddedCipher.init(false, params);
-
-      final decryptedBytes = paddedCipher.process(encryptedBytes);
-      
-      return utf8.decode(decryptedBytes);
+      cipher.init(false, params);
+      final combined = cipher.process(ct);
+      // Assume same pseudo-AAD split
+      final ts = obj['ts'] as String? ?? '';
+      final prefix = utf8.encode('ts=$ts');
+      if (combined.length < prefix.length) return 'HYBRID_DECRYPT_ERROR: CORRUPT';
+      final body = combined.sublist(prefix.length);
+      return utf8.decode(body);
     } catch (e) {
       return 'HYBRID_DECRYPT_ERROR: $e';
     }
@@ -415,9 +435,44 @@ class EncryptionService {
     return bytes;
   }
 
+  Uint8List _expandIv(Uint8List iv12) {
+    if (iv12.length == 16) return iv12;
+    final out = Uint8List(16)..setRange(0, iv12.length, iv12);
+    for (int i = iv12.length; i < 16; i++) {
+      out[i] = 0;
+    }
+    return out;
+  }
+
+  bool _constantTimeEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    int diff = 0;
+    for (int i = 0; i < a.length; i++) {
+      diff |= a[i] ^ b[i];
+    }
+    return diff == 0;
+  }
+
   Uint8List _generateFixedKey() {
-    // Fixed key for demo purposes - in production, use proper key management
-    return Uint8List.fromList(List.generate(32, (i) => i * 7 % 256));
+    // Demo key (do not use in production)
+    return Uint8List.fromList(List<int>.generate(32, (i) => i));
+  }
+
+  Uint8List _deriveSharedSecret(Uint8List priv, Uint8List pub) {
+    final out = Uint8List(32);
+    for (int i = 0; i < 32; i++) {
+      out[i] = (priv[i % priv.length] ^ pub[i % pub.length]) & 0xFF;
+    }
+    return out;
+  }
+
+  Uint8List _kdf(Uint8List seed, int length) {
+    final digest = sha256.convert(seed).bytes;
+    final out = Uint8List(length);
+    for (int i = 0; i < length; i++) {
+      out[i] = digest[i % digest.length];
+    }
+    return out;
   }
 
   bool _checkPolicy(String policy, List<String> attributes) {
