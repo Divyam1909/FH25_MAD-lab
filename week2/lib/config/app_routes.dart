@@ -20,32 +20,33 @@ class AppRoutes {
   static const String error = '/error';
 
   // Navigation helper
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
 
   // Route generation
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case splash:
         return _buildRoute(const SplashScreen(), settings);
-      
+
       case dashboard:
         return _buildRoute(const DashboardScreen(), settings);
-      
+
       case upload:
         return _buildRoute(const UploadScreen(), settings);
-      
+
       case test:
         return _buildRoute(const TestScreen(), settings);
-      
+
       case metrics:
         return _buildRoute(const MetricsScreen(), settings);
-      
-      case settings:
+
+      case AppRoutes.settings:
         return _buildRoute(const SettingsScreen(), settings);
-      
+
       case help:
         return _buildRoute(const HelpScreen(), settings);
-      
+
       case error:
         final args = settings.arguments as Map<String, dynamic>?;
         return _buildRoute(
@@ -55,7 +56,7 @@ class AppRoutes {
           ),
           settings,
         );
-      
+
       default:
         return _buildRoute(
           const ErrorScreen(
@@ -176,9 +177,9 @@ class AppRoutes {
   static String getRouteFromPath(String path) {
     final uri = Uri.parse(path);
     final segments = uri.pathSegments;
-    
+
     if (segments.isEmpty) return splash;
-    
+
     switch (segments.first) {
       case 'dashboard':
         return dashboard;
@@ -237,11 +238,12 @@ class AppRoutes {
   };
 
   static RouteInfo getRouteInfo(String routeName) {
-    return routeInfo[routeName] ?? const RouteInfo(
-      title: 'Unknown',
-      icon: Icons.error,
-      description: 'Unknown route',
-    );
+    return routeInfo[routeName] ??
+        const RouteInfo(
+          title: 'Unknown',
+          icon: Icons.error,
+          description: 'Unknown route',
+        );
   }
 }
 
@@ -259,4 +261,4 @@ class RouteInfo {
     this.requiresAuth = false,
     this.permissions = const [],
   });
-} 
+}

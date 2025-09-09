@@ -29,7 +29,7 @@ class CyberCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveBorderColor = borderColor ?? AppTheme.primaryGreen;
     final effectiveElevation = elevation ?? (glowEffect ? 8.0 : 4.0);
-    
+
     Widget cardWidget = Container(
       padding: padding ?? AppConfig.cardPadding,
       decoration: BoxDecoration(
@@ -113,7 +113,7 @@ class GlowingCyberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveGlowColor = glowColor ?? AppTheme.primaryGreen;
-    
+
     return Container(
       padding: padding ?? AppConfig.cardPadding,
       decoration: BoxDecoration(
@@ -165,7 +165,7 @@ class _InteractiveCyberCardState extends State<InteractiveCyberCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _hoverController;
   late Animation<double> _hoverAnimation;
-  bool _isHovered = false;
+  // ...existing code...
 
   @override
   void initState() {
@@ -195,7 +195,7 @@ class _InteractiveCyberCardState extends State<InteractiveCyberCard>
         animation: _hoverAnimation,
         builder: (context, child) {
           final hoverValue = _hoverAnimation.value;
-          
+
           return Transform.scale(
             scale: 1.0 + (hoverValue * 0.02),
             child: Container(
@@ -238,9 +238,9 @@ class _InteractiveCyberCardState extends State<InteractiveCyberCard>
 
   void _onHover(bool isHovered) {
     setState(() {
-      _isHovered = isHovered;
+      // ...existing code...
     });
-    
+
     if (isHovered) {
       _hoverController.forward();
     } else {

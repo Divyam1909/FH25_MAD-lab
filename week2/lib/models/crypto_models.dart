@@ -1,5 +1,5 @@
 import 'dart:typed_data';
-import 'dart:math';
+// ...existing code...
 
 /// Advanced cryptographic algorithm types
 enum CryptoAlgorithm {
@@ -29,7 +29,7 @@ enum CryptoAlgorithm {
 /// Security levels based on NIST standards
 enum SecurityLevel {
   level1(128), // AES-128 equivalent
-  level2(192), // AES-192 equivalent  
+  level2(192), // AES-192 equivalent
   level3(256), // AES-256 equivalent
   level4(384), // Beyond AES-256
   level5(512); // Quantum-resistant
@@ -47,7 +47,7 @@ class CryptoParameters {
   final Map<String, dynamic> algorithmParams;
   final Duration keyRotationInterval;
   final bool isQuantumResistant;
-  
+
   const CryptoParameters({
     required this.algorithm,
     required this.securityLevel,
@@ -71,7 +71,7 @@ class CryptoKey {
   final bool isCompromised;
   final int usageCount;
   final int maxUsages;
-  
+
   CryptoKey({
     required this.id,
     required this.keyMaterial,
@@ -84,11 +84,13 @@ class CryptoKey {
     this.usageCount = 0,
     this.maxUsages = -1, // -1 means unlimited
   });
-  
+
   bool get isExpired => DateTime.now().isAfter(expiresAt);
-  bool get isValid => !isCompromised && !isExpired && 
-    (maxUsages == -1 || usageCount < maxUsages);
-  
+  bool get isValid =>
+      !isCompromised &&
+      !isExpired &&
+      (maxUsages == -1 || usageCount < maxUsages);
+
   CryptoKey incrementUsage() {
     return CryptoKey(
       id: id,
@@ -119,7 +121,7 @@ class EncryptionResult {
   final int plaintextSize;
   final int ciphertextSize;
   final double compressionRatio;
-  
+
   EncryptionResult({
     required this.ciphertext,
     this.nonce,
@@ -134,7 +136,7 @@ class EncryptionResult {
     required this.ciphertextSize,
     required this.compressionRatio,
   });
-  
+
   double get overhead => (ciphertextSize - plaintextSize) / plaintextSize;
   double get throughput => plaintextSize / encryptionTime; // bytes per second
 }
@@ -148,7 +150,7 @@ class ZKProof {
   final Map<String, dynamic> circuitParams;
   final DateTime generatedAt;
   final bool isValid;
-  
+
   ZKProof({
     required this.proofType,
     required this.proof,
@@ -179,7 +181,7 @@ class HomomorphicCiphertext {
   final int maxOperations;
   final int operationsPerformed;
   final List<HomomorphicOperation> operationHistory;
-  
+
   HomomorphicCiphertext({
     required this.data,
     required this.parameters,
@@ -188,7 +190,7 @@ class HomomorphicCiphertext {
     this.operationsPerformed = 0,
     this.operationHistory = const [],
   });
-  
+
   bool get canPerformOperation => operationsPerformed < maxOperations;
   double get noiseGrowthRate => operationsPerformed / maxOperations;
 }
@@ -200,7 +202,7 @@ class LatticeParameters {
   final double standardDeviation;
   final int hammingWeight;
   final String latticeType; // LWE, RLWE, MLWE
-  
+
   LatticeParameters({
     required this.dimension,
     required this.modulus,
@@ -218,7 +220,7 @@ class ABEPolicy {
   final List<String> requiredAttributes;
   final DateTime validFrom;
   final DateTime validUntil;
-  
+
   ABEPolicy({
     required this.policyString,
     required this.attributes,
@@ -227,7 +229,7 @@ class ABEPolicy {
     required this.validFrom,
     required this.validUntil,
   });
-  
+
   bool isValidAt(DateTime time) {
     return time.isAfter(validFrom) && time.isBefore(validUntil);
   }
@@ -243,7 +245,7 @@ class SecurityMetrics {
   final Map<String, double> statisticalTests;
   final double quantumResistanceScore;
   final DateTime analyzedAt;
-  
+
   SecurityMetrics({
     required this.entropyScore,
     required this.avalancheEffect,
@@ -254,7 +256,7 @@ class SecurityMetrics {
     required this.quantumResistanceScore,
     required this.analyzedAt,
   });
-  
+
   double get overallSecurityScore {
     final scores = [
       entropyScore,
@@ -276,7 +278,7 @@ class MPCParty {
   final Map<String, dynamic> capabilities;
   final bool isOnline;
   final DateTime lastSeen;
-  
+
   MPCParty({
     required this.id,
     required this.publicKey,
@@ -295,7 +297,7 @@ class MPCProtocol {
   final SecurityLevel securityLevel;
   final bool supportsPreprocessing;
   final bool supportsOnlinePhase;
-  
+
   MPCProtocol({
     required this.protocolType,
     required this.parties,
@@ -305,4 +307,4 @@ class MPCProtocol {
     required this.supportsPreprocessing,
     required this.supportsOnlinePhase,
   });
-} 
+}

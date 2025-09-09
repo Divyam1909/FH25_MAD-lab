@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'crypto_models.dart';
 import 'attack_models.dart';
-import 'network_models.dart';
 
 class AppState extends ChangeNotifier {
   int _currentIndex = 0;
@@ -160,43 +159,9 @@ class AppState extends ChangeNotifier {
   void setUploadedEncryptionCode(String? code) {
     _uploadedEncryptionCode = code;
     _updateActivity();
-    notifyListeners();
-  }
-
-  void setUploadedAttackCode(String? code) {
-    _uploadedAttackCode = code;
-    _updateActivity();
-    notifyListeners();
-  }
-
-  // Accept enum or label
-  void setSelectedEncryption(CryptoAlgorithm algorithm) {
-    _selectedEncryption = algorithm;
-    _updateActivity();
-    notifyListeners();
-  }
-
-  // Accept enum or label
+    // Removed unused method _labelToEncryptionAlgorithm
   void setSelectedAttack(AttackType attack) {
-    _selectedAttack = attack;
-    _updateActivity();
-    notifyListeners();
-  }
-
-  void setSelectedSecurityLevel(SecurityLevel level) {
-    _selectedSecurityLevel = level;
-    _updateActivity();
-    notifyListeners();
-  }
-
-  void setSelectedNetworkTopology(String topology) {
-    _selectedNetworkTopology = topology;
-    _updateActivity();
-    notifyListeners();
-  }
-
-  void setQuantumResistance(bool enabled) {
-    _enableQuantumResistance = enabled;
+    // Removed unused method _labelToAttackType
     _updateActivity();
     notifyListeners();
   }

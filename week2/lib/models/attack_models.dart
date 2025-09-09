@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+// ...existing code...
 import 'dart:math';
 import 'crypto_models.dart';
 
@@ -20,7 +20,7 @@ enum AttackCategory {
 enum AttackType {
   // None
   noAttack,
-  
+
   // Cryptanalytic
   differentialCryptanalysis,
   linearCryptanalysis,
@@ -30,7 +30,7 @@ enum AttackType {
   dictionaryAttack,
   birthdayAttack,
   collisionAttack,
-  
+
   // Side-channel
   timingAttack,
   powerAnalysis,
@@ -38,13 +38,13 @@ enum AttackType {
   acousticAttack,
   cacheAttack,
   speculativeExecution,
-  
+
   // Quantum
   shorsAlgorithm,
   groversAlgorithm,
   quantumAnnealing,
   adiabticQuantumComputing,
-  
+
   // Machine Learning
   adversarialExamples,
   modelInversion,
@@ -52,7 +52,7 @@ enum AttackType {
   poisoningAttack,
   backdoorAttack,
   gradientLeakage,
-  
+
   // Protocol
   manInTheMiddle,
   replayAttack,
@@ -60,7 +60,7 @@ enum AttackType {
   downgradeAttack,
   protocolConfusion,
   crossProtocolAttack,
-  
+
   // Advanced
   zeroDay,
   supplychainAttack,
@@ -96,7 +96,7 @@ class AttackParameters {
   final SecurityLevel targetSecurityLevel;
   final bool requiresInteraction;
   final bool isQuantumEnhanced;
-  
+
   AttackParameters({
     required this.attackType,
     required this.category,
@@ -123,7 +123,7 @@ class AttackContext {
   final Duration timeLimit;
   final bool isSimulated;
   final String attackerId;
-  
+
   AttackContext({
     required this.targetId,
     required this.targetType,
@@ -151,7 +151,7 @@ class AttackResult {
   final Map<String, double> metrics;
   final DateTime completedAt;
   final String? errorMessage;
-  
+
   AttackResult({
     required this.attackId,
     required this.attackType,
@@ -166,9 +166,10 @@ class AttackResult {
     required this.completedAt,
     this.errorMessage,
   });
-  
+
   double get successRate => successful ? 1.0 : 0.0;
-  double get efficiency => resourcesUsed > 0 ? confidenceScore / resourcesUsed : 0.0;
+  double get efficiency =>
+      resourcesUsed > 0 ? confidenceScore / resourcesUsed : 0.0;
 }
 
 /// Individual attack step for detailed analysis
@@ -182,7 +183,6 @@ class AttackStep {
   final bool successful;
   final double confidence;
   final String? errorDetails;
-  
   AttackStep({
     required this.stepNumber,
     required this.description,
@@ -206,7 +206,7 @@ class MLAttackModel {
   final int maxIterations;
   final double learningRate;
   final bool useGradientMasking;
-  
+
   MLAttackModel({
     required this.modelType,
     required this.hyperparameters,
@@ -228,7 +228,7 @@ class SideChannelMeasurement {
   final Map<String, dynamic> instrumentConfig;
   final double noiseLevel;
   final List<String> filteredSignals;
-  
+
   SideChannelMeasurement({
     required this.channelType,
     required this.measurements,
@@ -238,13 +238,13 @@ class SideChannelMeasurement {
     required this.noiseLevel,
     this.filteredSignals = const [],
   });
-  
+
   double get signalToNoiseRatio {
     if (measurements.isEmpty) return 0.0;
     final mean = measurements.reduce((a, b) => a + b) / measurements.length;
-    final variance = measurements
-        .map((x) => pow(x - mean, 2))
-        .reduce((a, b) => a + b) / measurements.length;
+    final variance =
+        measurements.map((x) => pow(x - mean, 2)).reduce((a, b) => a + b) /
+            measurements.length;
     final signal = mean.abs();
     final noise = sqrt(variance);
     return noise > 0 ? signal / noise : double.infinity;
@@ -261,7 +261,7 @@ class QuantumAttackParams {
   final Map<String, dynamic> circuitParams;
   final bool useQuantumCorrection;
   final int shotCount;
-  
+
   QuantumAttackParams({
     required this.qubits,
     required this.coherenceTime,
@@ -287,7 +287,7 @@ class ThreatIntelligence {
   final String severity; // Critical, High, Medium, Low
   final List<String> mitigations;
   final double confidence;
-  
+
   ThreatIntelligence({
     required this.threatId,
     required this.primaryAttack,
@@ -314,7 +314,7 @@ class AttackPattern {
   final List<String> countermeasures;
   final bool isAdaptive;
   final String difficultyLevel;
-  
+
   AttackPattern({
     required this.patternId,
     required this.name,
@@ -338,7 +338,7 @@ class AttackVector {
   final double persistence;
   final bool isStealthy;
   final List<String> coverTechniques;
-  
+
   AttackVector({
     required this.vectorId,
     required this.attackType,
@@ -360,7 +360,7 @@ class MultiVectorAttack {
   final Map<String, double> successThresholds;
   final bool useAI;
   final String orchestrationStrategy;
-  
+
   MultiVectorAttack({
     required this.campaignId,
     required this.vectors,
@@ -371,4 +371,4 @@ class MultiVectorAttack {
     this.useAI = false,
     required this.orchestrationStrategy,
   });
-} 
+}

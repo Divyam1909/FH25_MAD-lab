@@ -23,15 +23,16 @@ import 'services/analytics_service.dart';
 import 'models/app_state.dart';
 
 // Screens
-import 'screens/dashboard_screen.dart';
+// ...existing code...
 import 'screens/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Initialize error handling
   FlutterError.onError = (FlutterErrorDetails details) {
-    Logger().e('Flutter Error: ${details.exception}', details.stack);
+    Logger()
+        .e('Flutter Error: ${details.exception}', stackTrace: details.stack);
     ErrorService.instance.reportError(details.exception, details.stack);
   };
 
@@ -57,17 +58,17 @@ class CybersecurityLabApp extends StatelessWidget {
       providers: [
         // State Management
         ChangeNotifierProvider(create: (_) => AppState()),
-        
+
         // Core Services
         Provider(create: (_) => EncryptionService()),
         Provider(create: (_) => AttackService()),
         Provider(create: (_) => BenchmarkService()),
-        
+
         // Advanced Services
         Provider(create: (_) => QuantumCryptoService()),
         Provider(create: (_) => MLSecurityService()),
         Provider(create: (_) => BlockchainSecurityService()),
-        
+
         // Utility Services
         Provider(create: (_) => NotificationService()),
         Provider(create: (_) => ErrorService.instance),
@@ -78,23 +79,23 @@ class CybersecurityLabApp extends StatelessWidget {
           return MaterialApp(
             title: AppConfig.appName,
             debugShowCheckedModeBanner: false,
-            
+
             // Theme Configuration
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            
+
             // Navigation Configuration
             initialRoute: AppRoutes.splash,
             onGenerateRoute: AppRoutes.generateRoute,
             navigatorKey: AppConfig.navigatorKey,
-            
+
             // Error Handling
             builder: (context, widget) {
               ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
                 return _buildErrorWidget(context, errorDetails);
               };
-              
+
               return MediaQuery(
                 data: MediaQuery.of(context).copyWith(
                   textScaleFactor: 1.0, // Prevent system font scaling issues
@@ -102,12 +103,12 @@ class CybersecurityLabApp extends StatelessWidget {
                 child: widget ?? const SizedBox.shrink(),
               );
             },
-            
+
             // Localization (future enhancement)
             supportedLocales: const [
               Locale('en', 'US'),
             ],
-            
+
             // Home screen
             home: const SplashScreen(),
           );
@@ -116,7 +117,8 @@ class CybersecurityLabApp extends StatelessWidget {
     );
   }
 
-  Widget _buildErrorWidget(BuildContext context, FlutterErrorDetails errorDetails) {
+  Widget _buildErrorWidget(
+      BuildContext context, FlutterErrorDetails errorDetails) {
     return Scaffold(
       backgroundColor: AppTheme.darkColors.background,
       body: Center(
@@ -143,16 +145,16 @@ class CybersecurityLabApp extends StatelessWidget {
               Text(
                 'Application Error',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.darkColors.error,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: AppTheme.darkColors.error,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 12),
               Text(
                 'An unexpected error occurred. The development team has been notified.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppTheme.darkColors.onSurface,
-                ),
+                      color: AppTheme.darkColors.onSurface,
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -183,7 +185,8 @@ class CybersecurityLabApp extends StatelessWidget {
     );
   }
 
-  void _showErrorDetails(BuildContext context, FlutterErrorDetails errorDetails) {
+  void _showErrorDetails(
+      BuildContext context, FlutterErrorDetails errorDetails) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

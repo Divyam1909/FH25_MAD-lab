@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -179,7 +181,7 @@ class AppTheme {
         color: surfaceDark,
         elevation: 8,
         shadowColor: primaryGreen.withOpacity(0.2),
-        shape: RoundedRectangleBorder(
+    cardTheme: CardThemeData(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
             color: primaryGreen.withOpacity(0.3),
@@ -194,7 +196,7 @@ class AppTheme {
         style: ButtonStyle(
           backgroundColor: MaterialStateProperty.resolveWith((states) {
             if (states.contains(MaterialState.disabled)) {
-              return textDisabled;
+    dialogTheme: DialogThemeData(
             }
             if (states.contains(MaterialState.hovered)) {
               return primaryGreenDark;
